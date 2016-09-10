@@ -3,10 +3,10 @@ var qs = require('querystring');
 
 module.exports = function (ctx, cb) {
 
-    var targeturl = ctx.data.url;
+    var targeturl = qs.escape(ctx.data.url);
 
     var markdownurl = 'http://fuckyeahmarkdown.com/go/?output=markdown&u='
-    var url = markdownurl + qs.escape(targeturl);
+    var url = markdownurl + targeturl;
     request.get({url: url}, function(error, response, body) {
         if(!error && response.statusCode == 200) {
             cb(null, body);
