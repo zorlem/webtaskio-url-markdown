@@ -10,10 +10,9 @@ function save(mongouri, url, text, callback) {
     var doc = {
         $setOnInsert: {
             markdown: text,
-            $currentDate: { firstsaved: true }
+            firstsaved: Date.now()
         },
         $inc: { saved: 1},
-        $set: { $currentDate: { lastsaved: true }}
     };
     var opts = {
         upsert: true
