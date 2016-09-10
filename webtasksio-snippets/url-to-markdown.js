@@ -2,13 +2,13 @@ var request = require('request');
 var qs = require('querystring');
 var mongoc = require('mongodb').MongoClient;
 
-function save(url, text, db, callback) {
+function save(mongouri, url, text, callback) {
 
-    var address = { 
+    var address = {
         url: url
     };
     var doc = {
-        $setOnInsert: { 
+        $setOnInsert: {
             markdown: text,
             $currentDate: { firstsaved: true }
         },
@@ -19,13 +19,16 @@ function save(url, text, db, callback) {
         upsert: true
     };
 
-    db
-        .collection('mdpages')
-        .update(address, doc, opts, function(error) {
-            if(error) return callback(error);
-            console.log('Saved URL: ' + url);
-            callback(null);
-        });
+    mongoc.connect(mongouri, function(error, db) {
+        if(error) return callback(error);
+        db.collection('mdpages')
+            .update(address, doc, opts, (error, result) => {
+                if(error) return callback(error);
+                console.log('Saved URL: ' + url);
+                db.close();
+                callback(null, result);
+            });
+    });
 };
 
 module.exports = function (ctx, cb) {
@@ -36,16 +39,8 @@ module.exports = function (ctx, cb) {
     var url = markdownurl + targeturl;
     request.get({url: url}, function(error, response, body) {
         if(!error && response.statusCode == 200) {
-            mongoc.connect(ctx.data.MONGO_URL, function(error, db) {
-                if(error) return cb(error);
-                console.log('MUR: ' + ctx.data.MONGO_URL);
-                return function(cb) {
-                    save(targeturl, body, db, function(error) {
-                        if(error) return cb(error);
-                        cb(null, "Success.");
-                    });
-                };
-            });
+            console.log('Success getting text for url:' + url);
+            save(ctx.data.MONGO_URL, targeturl, body, cb);
         } else {
             console.log('Error: ' + error + 'Url: ' + url + ' Response code: ' + response.statusCode);
             return cb(error);
